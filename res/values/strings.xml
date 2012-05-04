@@ -3,5 +3,7 @@
 
     <string name="hello">Hello World, PaymentsActivity!</string>
     <string name="app_name">Payments</string>
+    <string name="pay">Send a Payment</string>
+    <string name="bill">Request a Payment</string>
 
 </resources>
