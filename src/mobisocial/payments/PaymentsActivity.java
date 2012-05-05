@@ -2,10 +2,15 @@ package mobisocial.payments;
 
 import java.util.List;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import mobisocial.payments.server.TokenVerifier;
+import mobisocial.socialkit.Obj;
 import mobisocial.socialkit.musubi.DbFeed;
 import mobisocial.socialkit.musubi.DbIdentity;
 import mobisocial.socialkit.musubi.Musubi;
+import mobisocial.socialkit.obj.MemObj;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
@@ -88,6 +93,7 @@ public class PaymentsActivity extends Activity {
             }
             
             // TODO: get this going with SocialKit
+            sendBill(data);
         }
     }
     
@@ -100,5 +106,35 @@ public class PaymentsActivity extends Activity {
         findViewById(R.id.billbutton).setOnClickListener(mBillButtonListener);
         Log.d(TAG, TokenVerifier.nameForRoutingNumber("031176110"));
         Log.d(TAG, TokenVerifier.getCertificateOwner("https://home.ingdirect.com"));
+    }
+    
+    private void sendBill(Intent data) {
+    	Uri feedUri = data.getData();
+        if (feedUri == null) {
+            return;
+        }
+        Log.d(TAG, "Feed URI: " + feedUri);
+        
+        DbFeed feed = mMusubi.getFeed(feedUri);
+        
+        DbIdentity me = feed.getLocalUser();
+        List<DbIdentity> members = feed.getMembers();
+        Log.d(TAG, "My ID: " + me.getId() + " Name: " + me.getName());
+        for (DbIdentity member : members) {
+            Log.d(TAG, "ID: " + member.getId() + " Name: " + member.getName());
+        }
+        
+        JSONObject one = new JSONObject();
+        try {
+            one.put("amount", 20);
+            one.put("payee", "Musubi Express");
+            one.put(Obj.FIELD_HTML, "<html>You owe me $20</html>");
+        } catch (JSONException e) {
+            Log.e(TAG, "JSON parse error", e);
+            return;
+        }
+        
+        feed.insert(new MemObj("expayment", one));
+        Log.d(TAG, feed.getLatestObj().getJson().toString());
     }
 }

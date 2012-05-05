@@ -19,6 +19,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        
+        <receiver android:name=".MessageReceiver">
+		    <intent-filter>
+		        <action android:name="mobisocial.intent.action.DATA_RECEIVED"/>
+		    </intent-filter>
+		</receiver>
     </application>
 
 </manifest>

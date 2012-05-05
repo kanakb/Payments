@@ -10,3 +10,4 @@ gen
 local.properties
 bin
 .DS_Store
+project.properties
