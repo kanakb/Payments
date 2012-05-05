@@ -219,7 +219,7 @@ public class BankSession {
         post.setHeader("Set-Cookie", "_id=" + mSessionId);
         List<NameValuePair> postData = new ArrayList<NameValuePair>();
         postData.add(new BasicNameValuePair("amount", amount));
-        postData.add(new BasicNameValuePair("_id", mSessionId));
+        postData.add(new BasicNameValuePair("sid", mSessionId));
         try {
             post.setEntity(new UrlEncodedFormEntity(postData, HTTP.UTF_8));
             HttpResponse response = http.execute(post);
