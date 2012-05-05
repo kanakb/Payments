@@ -235,6 +235,7 @@ public class BankSession {
                 Log.w(TAG, "Bad token request");
                 return null;
             }
+            Log.d(TAG, responseStr);
             return new JSONObject(responseStr);
         } catch (UnsupportedEncodingException e) {
             Log.e(TAG, "Could not encode request parameters", e);
