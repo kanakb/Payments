@@ -19,6 +19,7 @@ import android.widget.Toast;
 
 public class PaymentsActivity extends Activity {
     public static final String TAG = "PaymentsActivity";
+    public static final String PREFS_NAME = "PaymentsPrefsFile";
     
     private static final String ACTION_CREATE_FEED = "musubi.intent.action.CREATE_FEED";
     private static final int REQUEST_CREATE_FEED = 1;

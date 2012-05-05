@@ -1,11 +1,15 @@
 package mobisocial.payments.server;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
+
+import mobisocial.payments.PaymentsActivity;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
@@ -16,7 +20,11 @@ import org.apache.http.client.utils.URIUtils;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.protocol.HTTP;
+import org.json.JSONException;
+import org.json.JSONObject;
 
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.util.Log;
 
 /**
@@ -30,18 +38,32 @@ public class BankSession {
     private static final String SERVER_LOCATION = "expay.herokuapp.com";
     private static final String REGISTER_PATH = "/register";
     private static final String LOGIN_PATH = "/login";
+    private static final String TOKEN_PATH = "/token";
     private static final String AUTH_PATH = "/auth";
     
-    @SuppressWarnings("unused")
     private String mSessionId;
     
     private BankSession(String sessionId) {
         mSessionId = sessionId;
     }
     
-    public static BankSession newInstance(String username, String password) {
-        // TODO: get saved token from local store if it exists
-        String sessionId = login(username, password);
+    public static BankSession newInstance(Context context, String username, String password) {
+        // Get the session id from the store if possible, otherwise log in
+        SharedPreferences p = context.getSharedPreferences(PaymentsActivity.PREFS_NAME, 0);
+        String sessionId = null;
+        String savedUsername = p.getString("username", null);
+        String savedPassword = p.getString("password", null);
+        if (username.equals(savedUsername) && password.equals(savedPassword)) {
+            sessionId = p.getString("session_id", null);
+        }
+        if (sessionId == null) {
+            sessionId = login(username, password);
+            if (sessionId != null) {
+                p.edit().putString("session_id", sessionId);
+                p.edit().putString("username", username);
+                p.edit().putString("password", password);
+            }
+        }
         return new BankSession(sessionId);
     }
     
@@ -62,30 +84,43 @@ public class BankSession {
         postData.add(new BasicNameValuePair("password", password));
         try {
             post.setEntity(new UrlEncodedFormEntity(postData, HTTP.UTF_8));
-            @SuppressWarnings("unused")
             HttpResponse response = http.execute(post);
+            BufferedReader rd = new BufferedReader(new InputStreamReader(
+                    response.getEntity().getContent()));
+            String responseStr = "";
+            String line = "";
+            while ((line = rd.readLine()) != null) {
+                responseStr += line;
+            }
+            if (responseStr.equals("false")) {
+                Log.w(TAG, "Problem logging in");
+                return null;
+            }
+            
+            JSONObject json = new JSONObject(responseStr);
+            Log.d(TAG, "Session ID: " + json.getString("_id"));
+            return json.getString("_id");
         } catch (UnsupportedEncodingException e) {
             Log.e(TAG, "Could not encode request parameters", e);
             return null;
         } catch (IOException e) {
             Log.e(TAG, "Error sending HTTP request", e);
             return null;
+        } catch (JSONException e) {
+            Log.e(TAG, "Error parsing JSON", e);
+            return null;
         }
-        
-        // TODO: save the session id
-        
-        return null;
     }
     
     // Send a request to the server to register a user
-    public static String register(String username, String password) {
+    public static boolean register(String username, String password) {
         HttpClient http = new DefaultHttpClient();
         URI uri;
         try {
             uri = URIUtils.createURI(URL_SCHEME, SERVER_LOCATION, -1, REGISTER_PATH, null, null);
         } catch (URISyntaxException e) {
             Log.e(TAG, "Malformed URL", e);
-            return null;
+            return false;
         }
         
         HttpPost post = new HttpPost(uri);
@@ -94,18 +129,26 @@ public class BankSession {
         postData.add(new BasicNameValuePair("password", password));
         try {
             post.setEntity(new UrlEncodedFormEntity(postData, HTTP.UTF_8));
-            http.execute(post);
+            HttpResponse response = http.execute(post);
+            BufferedReader rd = new BufferedReader(new InputStreamReader(
+                    response.getEntity().getContent()));
+            String responseStr = "";
+            String line = "";
+            while ((line = rd.readLine()) != null) {
+                responseStr += line;
+            }
+            if (responseStr.equals("false")) {
+                Log.w(TAG, "Problem registering");
+                return false;
+            }
+            return true;
         } catch (UnsupportedEncodingException e) {
             Log.e(TAG, "Could not encode request parameters", e);
-            return null;
+            return false;
         } catch (IOException e) {
             Log.e(TAG, "Error sending HTTP request", e);
-            return null;
+            return false;
         }
-        
-        // TODO: check if registration successful
-        
-        return null;
     }
     
     // Ask the server if the token is OK
@@ -125,8 +168,19 @@ public class BankSession {
         postData.add(new BasicNameValuePair("token", token));
         try {
             post.setEntity(new UrlEncodedFormEntity(postData, HTTP.UTF_8));
-            @SuppressWarnings("unused")
             HttpResponse response = http.execute(post);
+            BufferedReader rd = new BufferedReader(new InputStreamReader(
+                    response.getEntity().getContent()));
+            String responseStr = "";
+            String line = "";
+            while ((line = rd.readLine()) != null) {
+                responseStr += line;
+            }
+            if (responseStr.equals("false")) {
+                Log.i(TAG, "Bad token");
+                return false;
+            }
+            return true;
         } catch (UnsupportedEncodingException e) {
             Log.e(TAG, "Could not encode request parameters", e);
             return false;
@@ -134,11 +188,49 @@ public class BankSession {
             Log.e(TAG, "Error sending HTTP request", e);
             return false;
         }
-        
-        // TODO: check if OK
-        
-        return true;
     }
     
-    // TODO: get a token
+    // Get a token
+    public JSONObject getToken(String amount) {
+        HttpClient http = new DefaultHttpClient();
+        URI uri;
+        try {
+            uri = URIUtils.createURI(URL_SCHEME, SERVER_LOCATION, -1, TOKEN_PATH, null, null);
+        } catch (URISyntaxException e) {
+            Log.e(TAG, "Malformed URL", e);
+            return null;
+        }
+        
+        HttpPost post = new HttpPost(uri);
+        post.setHeader("Set-Cookie", "_id=" + mSessionId);
+        List<NameValuePair> postData = new ArrayList<NameValuePair>();
+        postData.add(new BasicNameValuePair("amount", amount));
+        postData.add(new BasicNameValuePair("_id", mSessionId));
+        try {
+            post.setEntity(new UrlEncodedFormEntity(postData, HTTP.UTF_8));
+            HttpResponse response = http.execute(post);
+            
+            BufferedReader rd = new BufferedReader(new InputStreamReader(
+                    response.getEntity().getContent()));
+            String responseStr = "";
+            String line = "";
+            while ((line = rd.readLine()) != null) {
+                responseStr += line;
+            }
+            if (responseStr.equals("false")) {
+                Log.w(TAG, "Bad token request");
+                return null;
+            }
+            return new JSONObject(responseStr);
+        } catch (UnsupportedEncodingException e) {
+            Log.e(TAG, "Could not encode request parameters", e);
+            return null;
+        } catch (IOException e) {
+            Log.e(TAG, "Error sending HTTP request", e);
+            return null;
+        } catch (JSONException e) {
+            Log.e(TAG, "Error parsing JSON", e);
+            return null;
+        }
+    }
 }
