@@ -6,6 +6,8 @@ import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -25,6 +27,7 @@ import org.json.JSONObject;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.util.Base64;
 import android.util.Log;
 
 /**
@@ -52,16 +55,27 @@ public class BankSession {
         SharedPreferences p = context.getSharedPreferences(PaymentsActivity.PREFS_NAME, 0);
         String sessionId = null;
         String savedUsername = p.getString("username", null);
+        MessageDigest md;
+        try {
+            md = MessageDigest.getInstance("SHA-256");
+        } catch (NoSuchAlgorithmException e) {
+            Log.e(TAG, "SHA-256 not supported", e);
+            return null;
+        }
+        md.update(password.getBytes());
+        String hashedPassword = Base64.encodeToString(md.digest(), Base64.DEFAULT);
         String savedPassword = p.getString("password", null);
-        if (username.equals(savedUsername) && password.equals(savedPassword)) {
+        if (username.equals(savedUsername) && hashedPassword.equals(savedPassword)) {
             sessionId = p.getString("session_id", null);
         }
+        
+        // Session id not available
         if (sessionId == null) {
             sessionId = login(username, password);
             if (sessionId != null) {
                 p.edit().putString("session_id", sessionId);
                 p.edit().putString("username", username);
-                p.edit().putString("password", password);
+                p.edit().putString("password", hashedPassword);
             }
         }
         return new BankSession(sessionId);
