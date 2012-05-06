@@ -26,6 +26,9 @@
         <activity
             android:name=".AcceptBillActivity"
             android:label="@string/accept_bill" />
+        <activity
+            android:name=".VerifyPaymentActivity"
+            android:label="@string/verify_payment" />
         
         <receiver android:name=".MessageReceiver">
 		    <intent-filter>

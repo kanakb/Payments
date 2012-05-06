@@ -111,17 +111,12 @@ public class BankSession {
                 return null;
             }
             
-            JSONObject json = new JSONObject(responseStr);
-            Log.d(TAG, "Session ID: " + json.getString("_id"));
-            return json.getString("_id");
+            return responseStr;
         } catch (UnsupportedEncodingException e) {
             Log.e(TAG, "Could not encode request parameters", e);
             return null;
         } catch (IOException e) {
             Log.e(TAG, "Error sending HTTP request", e);
-            return null;
-        } catch (JSONException e) {
-            Log.e(TAG, "Error parsing JSON", e);
             return null;
         }
     }

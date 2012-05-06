@@ -47,8 +47,10 @@ public class PaymentsActivity extends Activity {
     private FeedObserver mPayeeFeedObserver = new FeedObserver() {
         @Override
         public void onUpdate(DbObj obj) {
-            // TODO: do something meaningful with the update
             Log.d(TAG, obj.getJson().toString());
+            Intent create = new Intent(PaymentsActivity.this, VerifyPaymentActivity.class);
+            create.setData(obj.getUri());
+            startActivity(create);
         }
     };
     

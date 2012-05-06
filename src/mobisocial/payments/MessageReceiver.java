@@ -9,6 +9,7 @@ import android.content.Context;
 import android.content.Intent;
 
 
+import mobisocial.socialkit.musubi.DbFeed;
 import mobisocial.socialkit.musubi.DbObj;
 import mobisocial.socialkit.musubi.Musubi;
 import android.app.Activity;
@@ -39,17 +40,33 @@ public class MessageReceiver extends BroadcastReceiver {
         }
         JSONObject data = obj.getJson();
         
+        DbFeed feed = obj.getContainingFeed();
+        int myIndex = (feed.getMembers().get(0).getName()
+                .equals(feed.getLocalUser().getName())) ? 1 : 0;
+        String otherParty = feed.getMembers().get(myIndex).getName();
+        
         // generate notification
         NotificationManager nm = (NotificationManager)context.getSystemService(Context.NOTIFICATION_SERVICE);
-        Notification notification = new Notification(android.R.drawable.btn_star_big_on, "New bill", System.currentTimeMillis());
+        Notification notification;
+        Intent notificationIntent;
+        if (data.has("payee")) {
+            notification = new Notification(R.drawable.notification, "New bill", System.currentTimeMillis());
+            notificationIntent = new Intent(context, AcceptBillActivity.class);
+        } else {
+            notification = new Notification(R.drawable.notification, "Payment received", System.currentTimeMillis());
+            notificationIntent = new Intent(context, VerifyPaymentActivity.class);
+        }
         notification.flags = Notification.FLAG_AUTO_CANCEL;
         
-        Intent notificationIntent = new Intent(context, AcceptBillActivity.class);
         notificationIntent.setData(obj.getUri());
 
         PendingIntent contentIntent = PendingIntent.getActivity(context, 0, notificationIntent, 0);
         try {
-            notification.setLatestEventInfo(context, "New bill from " + data.getString("payee"), "$" + data.getInt("amount"), contentIntent);
+            if (data.has("payee")) {
+                notification.setLatestEventInfo(context, "New bill from " + otherParty, "$" + data.getInt("amount"), contentIntent);
+            } else {
+                notification.setLatestEventInfo(context, "New payment from " + otherParty, "Tap to continue.", contentIntent);
+            }
         } catch (JSONException e) {
             Log.w(TAG, "JSON incomplete", e);
             return;

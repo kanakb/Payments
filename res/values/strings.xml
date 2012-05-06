@@ -11,5 +11,6 @@
     <string name="no">No</string>
     <string name="verification">Verification</string>
     <string name="accept_bill">Accept Bill?</string>
+    <string name="verify_payment">Verify Payment</string>
 
 </resources>
