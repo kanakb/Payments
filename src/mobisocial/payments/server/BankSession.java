@@ -189,6 +189,7 @@ public class BankSession {
                 Log.i(TAG, "Bad token");
                 return false;
             }
+            Log.d(TAG, responseStr);
             return true;
         } catch (UnsupportedEncodingException e) {
             Log.e(TAG, "Could not encode request parameters", e);
