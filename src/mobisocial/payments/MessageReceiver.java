@@ -41,7 +41,7 @@ public class MessageReceiver extends BroadcastReceiver {
         
         // generate notification
         NotificationManager nm = (NotificationManager)context.getSystemService(Context.NOTIFICATION_SERVICE);
-        Notification notification = new Notification(android.R.drawable.btn_star_big_on, "New bill", System.currentTimeMillis());
+        Notification notification = new Notification(android.R.visa, "New bill", System.currentTimeMillis());
         notification.flags = Notification.FLAG_AUTO_CANCEL;
         
         Intent notificationIntent = new Intent(context, AcceptBillActivity.class);
