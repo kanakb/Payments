@@ -23,6 +23,9 @@
         <activity
             android:name=".SendBillActivity"
             android:label="@string/send_bill" />
+        <activity
+            android:name=".AcceptBillActivity"
+            android:label="@string/accept_bill" />
         
         <receiver android:name=".MessageReceiver">
 		    <intent-filter>

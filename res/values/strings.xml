@@ -7,5 +7,9 @@
     <string name="bill">Request a Payment</string>
     <string name="send">Send</string>
     <string name="send_bill">Send a Bill</string>
+    <string name="yes">Yes</string>
+    <string name="no">No</string>
+    <string name="verification">Verification</string>
+    <string name="accept_bill">Accept Bill?</string>
 
 </resources>

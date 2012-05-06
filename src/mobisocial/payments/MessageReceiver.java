@@ -44,9 +44,8 @@ public class MessageReceiver extends BroadcastReceiver {
         Notification notification = new Notification(android.R.drawable.btn_star_big_on, "New bill", System.currentTimeMillis());
         notification.flags = Notification.FLAG_AUTO_CANCEL;
         
-        Intent notificationIntent = new Intent(context, PaymentsActivity.class);
+        Intent notificationIntent = new Intent(context, AcceptBillActivity.class);
         notificationIntent.setData(obj.getUri());
-        notificationIntent.putExtra("payer", true);
 
         PendingIntent contentIntent = PendingIntent.getActivity(context, 0, notificationIntent, 0);
         try {
