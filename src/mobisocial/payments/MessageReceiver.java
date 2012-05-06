@@ -50,10 +50,10 @@ public class MessageReceiver extends BroadcastReceiver {
         Notification notification;
         Intent notificationIntent;
         if (data.has("payee")) {
-            notification = new Notification(R.drawable.notification, "New bill", System.currentTimeMillis());
+            notification = new Notification(R.drawable.visa, "New bill", System.currentTimeMillis());
             notificationIntent = new Intent(context, AcceptBillActivity.class);
         } else {
-            notification = new Notification(R.drawable.notification, "Payment received", System.currentTimeMillis());
+            notification = new Notification(R.drawable.visa, "Payment received", System.currentTimeMillis());
             notificationIntent = new Intent(context, VerifyPaymentActivity.class);
         }
         notification.flags = Notification.FLAG_AUTO_CANCEL;
