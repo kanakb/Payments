@@ -185,7 +185,7 @@ public class BankSession {
             while ((line = rd.readLine()) != null) {
                 responseStr += line;
             }
-            if (responseStr.equals("false")) {
+            if (!responseStr.equals("true")) {
                 Log.i(TAG, "Bad token");
                 return false;
             }
