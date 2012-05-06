@@ -1,21 +1,13 @@
 package mobisocial.payments;
 
-import java.util.List;
-
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import mobisocial.payments.server.TokenVerifier;
-import mobisocial.socialkit.Obj;
 import mobisocial.socialkit.musubi.DbFeed;
-import mobisocial.socialkit.musubi.DbIdentity;
+import mobisocial.socialkit.musubi.DbObj;
+import mobisocial.socialkit.musubi.FeedObserver;
 import mobisocial.socialkit.musubi.Musubi;
-import mobisocial.socialkit.obj.MemObj;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -26,8 +18,7 @@ public class PaymentsActivity extends Activity {
     public static final String TAG = "PaymentsActivity";
     public static final String PREFS_NAME = "PaymentsPrefsFile";
     
-    private static final String ACTION_CREATE_FEED = "musubi.intent.action.CREATE_FEED";
-    private static final int REQUEST_CREATE_FEED = 1;
+    private static final int REQUEST_SEND_BILL = 1;
     
     private Musubi mMusubi;
     
@@ -48,8 +39,16 @@ public class PaymentsActivity extends Activity {
                 return;
             }
 
-            Intent create = new Intent(ACTION_CREATE_FEED);
-            startActivityForResult(create, REQUEST_CREATE_FEED);
+            Intent create = new Intent(PaymentsActivity.this, SendBillActivity.class);
+            startActivityForResult(create, REQUEST_SEND_BILL);
+        }
+    };
+    
+    private FeedObserver mPayeeFeedObserver = new FeedObserver() {
+        @Override
+        public void onUpdate(DbObj obj) {
+            // TODO: do something meaningful with the update
+            Log.d(TAG, obj.getJson().toString());
         }
     };
     
@@ -79,21 +78,20 @@ public class PaymentsActivity extends Activity {
     
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == REQUEST_CREATE_FEED && resultCode == RESULT_OK) {
-            Uri feedUri = data.getData();
-            DbFeed feed = mMusubi.getFeed(feedUri);
-            
-            List<DbIdentity> members = feed.getMembers();
-            if (members.size() > 2) {
-                members = members.subList(0, 2);
-            } else if (members.size() < 2) {
-                Toast.makeText(this, "A payer must be specified.", Toast.LENGTH_SHORT);
-                finish();
+        if (requestCode == REQUEST_SEND_BILL && resultCode == RESULT_OK) {
+            if (data.getData() == null) {
                 return;
             }
             
-            // TODO: get this going with SocialKit
-            sendBill(data);
+            Toast.makeText(this, "Bill sent.", Toast.LENGTH_LONG);
+            Log.d(TAG, "notified bill sent");
+            
+            if (mMusubi == null) {
+                mMusubi = Musubi.getInstance(this);
+            }
+            
+            DbFeed feed = mMusubi.getFeed(data.getData());
+            feed.registerStateObserver(mPayeeFeedObserver);
         }
     }
     
@@ -104,37 +102,7 @@ public class PaymentsActivity extends Activity {
         mMusubi = Musubi.forIntent(this, getIntent());
         findViewById(R.id.paybutton).setOnClickListener(mPayButtonListener);
         findViewById(R.id.billbutton).setOnClickListener(mBillButtonListener);
-        Log.d(TAG, TokenVerifier.nameForRoutingNumber("031176110"));
-        Log.d(TAG, TokenVerifier.getCertificateOwner("https://home.ingdirect.com"));
-    }
-    
-    private void sendBill(Intent data) {
-    	Uri feedUri = data.getData();
-        if (feedUri == null) {
-            return;
-        }
-        Log.d(TAG, "Feed URI: " + feedUri);
-        
-        DbFeed feed = mMusubi.getFeed(feedUri);
-        
-        DbIdentity me = feed.getLocalUser();
-        List<DbIdentity> members = feed.getMembers();
-        Log.d(TAG, "My ID: " + me.getId() + " Name: " + me.getName());
-        for (DbIdentity member : members) {
-            Log.d(TAG, "ID: " + member.getId() + " Name: " + member.getName());
-        }
-        
-        JSONObject one = new JSONObject();
-        try {
-            one.put("amount", 20);
-            one.put("payee", "Musubi Express");
-            one.put(Obj.FIELD_HTML, "<html>You owe me $20</html>");
-        } catch (JSONException e) {
-            Log.e(TAG, "JSON parse error", e);
-            return;
-        }
-        
-        feed.insert(new MemObj("expayment", one));
-        Log.d(TAG, feed.getLatestObj().getJson().toString());
+        //Log.d(TAG, TokenVerifier.nameForRoutingNumber("031176110"));
+        //Log.d(TAG, TokenVerifier.getCertificateOwner("https://home.ingdirect.com"));
     }
 }

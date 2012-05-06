@@ -5,5 +5,7 @@
     <string name="app_name">Payments</string>
     <string name="pay">Send a Payment</string>
     <string name="bill">Request a Payment</string>
+    <string name="send">Send</string>
+    <string name="send_bill">Send a Bill</string>
 
 </resources>
