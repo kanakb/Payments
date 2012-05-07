@@ -74,6 +74,8 @@ public class VerifyPaymentActivity extends Activity {
         runOnUiThread(new Runnable() {
            @Override
            public void run() {
+               Log.d(TAG, "token: " + token);
+               Log.d(TAG, "amount: " + amount);
                boolean result = BankSession.authorize(token, amount);
                if (result) {
                    ((TextView)findViewById(R.id.verifyText))
@@ -98,6 +100,7 @@ public class VerifyPaymentActivity extends Activity {
                 DbObj obj = musubi.objForUri(data);
                 DbFeed feed = obj.getContainingFeed();
                 JSONObject token = obj.getJson();
+                Log.d(TAG, token.toString());
                 String certName;
                 String routeName;
                 String amount;
@@ -116,6 +119,7 @@ public class VerifyPaymentActivity extends Activity {
                         routeName != null && certName.equals(routeName)) {
                     // no need to prompt user
                     sendToken(authToken, amount);
+                    return;
                 }
                 
                 // Ask for permission to send the token

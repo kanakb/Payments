@@ -1,5 +1,7 @@
 package mobisocial.payments;
 
+import java.util.HashSet;
+
 import mobisocial.socialkit.musubi.DbFeed;
 import mobisocial.socialkit.musubi.DbObj;
 import mobisocial.socialkit.musubi.FeedObserver;
@@ -21,6 +23,7 @@ public class PaymentsActivity extends Activity {
     private static final int REQUEST_SEND_BILL = 1;
     
     private Musubi mMusubi;
+    private HashSet<String> mNotifiedSet = new HashSet<String>();
     
     private OnClickListener mPayButtonListener = new OnClickListener() {
         @Override
@@ -47,10 +50,16 @@ public class PaymentsActivity extends Activity {
     private FeedObserver mPayeeFeedObserver = new FeedObserver() {
         @Override
         public void onUpdate(DbObj obj) {
-            Log.d(TAG, obj.getJson().toString());
-            Intent create = new Intent(PaymentsActivity.this, VerifyPaymentActivity.class);
-            create.setData(obj.getUri());
-            startActivity(create);
+            synchronized(mNotifiedSet) {
+                Log.d(TAG, obj.getJson().toString());
+                if (mNotifiedSet.contains(obj.getUri().toString())) {
+                    return;
+                }
+                mNotifiedSet.add(obj.getUri().toString());
+                Intent create = new Intent(PaymentsActivity.this, VerifyPaymentActivity.class);
+                create.setData(obj.getUri());
+                startActivity(create);
+            }
         }
     };
     

@@ -52,8 +52,8 @@ public class AcceptBillActivity extends Activity {
                 new Thread() {
                     @Override
                     public void run() {
-                        BankSession.register("user@domain.com", "password");
-                        BankSession session = BankSession.newInstance(AcceptBillActivity.this, "user@domain.com", "password");
+                        BankSession.register("user2@domain.com", "password");
+                        BankSession session = BankSession.newInstance(AcceptBillActivity.this, "user2@domain.com", "password");
                         JSONObject token = session.getToken(new Integer(amount).toString());
                         if (token != null) {
                             DbFeed feed = obj.getContainingFeed();
