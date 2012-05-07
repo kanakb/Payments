@@ -79,7 +79,7 @@ public class VerifyPaymentActivity extends Activity {
                boolean result = BankSession.authorize(token, amount);
                if (result) {
                    ((TextView)findViewById(R.id.verifyText))
-                       .setText("Success! Payment of $" + amount + "is complete.");
+                       .setText("Success! Payment of $" + amount + " is complete.");
                } else {
                    ((TextView)findViewById(R.id.verifyText))
                        .setText("Payment could not be verified.");
