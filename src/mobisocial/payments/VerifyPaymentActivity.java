@@ -47,7 +47,7 @@ public class VerifyPaymentActivity extends Activity {
                 Musubi musubi = Musubi.getInstance(VerifyPaymentActivity.this);
                 JSONObject json = musubi.getObj().getJson();
                 try {
-                    sendToken(json.getString("bank_url"), json.getString("amount"));
+                    sendToken(json.getString("token"), json.getString("amount"));
                 } catch (JSONException e) {
                     Log.w(TAG, "JSON incomplete", e);
                     return;
@@ -101,21 +101,21 @@ public class VerifyPaymentActivity extends Activity {
                 String certName;
                 String routeName;
                 String amount;
-                String bankUrl;
+                String authToken;
                 try {
                     amount = token.getString("amount");
-                    bankUrl = token.getString("bank_url");
-                    certName = TokenVerifier.getCertificateOwner(bankUrl);
+                    authToken = token.getString("token");
+                    certName = TokenVerifier.getCertificateOwner(token.getString("bank_url"));
                     routeName = TokenVerifier.nameForRoutingNumber(token.getString("routing_number"));
                 } catch (JSONException e) {
                     Log.w(TAG, "JSON parse error", e);
                     finishActivity();
                     return;
                 }
-                if (bankUrl != null && amount != null && certName != null &&
+                if (authToken != null && amount != null && certName != null &&
                         routeName != null && certName.equals(routeName)) {
                     // no need to prompt user
-                    sendToken(bankUrl, amount);
+                    sendToken(authToken, amount);
                 }
                 
                 // Ask for permission to send the token
