@@ -61,7 +61,7 @@ public class VerifyPaymentActivity extends Activity {
             ((TextView)findViewById(R.id.verifyText))
                 .setText("Success!" +
                          "\nPayer: " + feed.getMembers().get(myIndex).getName() +
-                         "\nAmount: " + json.getString("amount") +
+                         "\nAmount: $" + json.getString("amount") +
                          "\nTransaction ID: " + json.getString("tid"));
                 ((Button)findViewById(R.id.yesbutton)).setText("OK");
                 ((Button)findViewById(R.id.nobutton)).setVisibility(Button.INVISIBLE);
