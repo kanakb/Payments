@@ -33,24 +33,6 @@ public class VerifyPaymentActivity extends Activity {
         NotificationManager nm = (NotificationManager)getSystemService(Context.NOTIFICATION_SERVICE);
         nm.cancelAll();
         
-        Musubi musubi = Musubi.getInstance(this);
-        DbObj obj = musubi.objForUri(getIntent().getData());
-        DbFeed feed = obj.getContainingFeed();
-        JSONObject json = obj.getJson();
-        int myIndex = (feed.getMembers().get(0).getName()
-                .equals(feed.getLocalUser().getName())) ? 1 : 0;
-        try {
-            ((TextView)findViewById(R.id.verifyText))
-                .setText("Success!" +
-                         "\nPayer: " + feed.getMembers().get(myIndex).getName() +
-                         "\nAmount: " + json.getString("amount") +
-                         "\nTransaction ID: " + json.getString("tid"));
-                ((Button)findViewById(R.id.yesbutton)).setText("OK");
-        } catch (JSONException e1) {
-            finish();
-            return;
-        }
-        
         // Send the token if yes is clicked
         findViewById(R.id.yesbutton).setOnClickListener(new OnClickListener() {
             @Override
@@ -69,9 +51,25 @@ public class VerifyPaymentActivity extends Activity {
             }
         });
         
-        // Hide the buttons unless there's something to ask
-        ((Button)findViewById(R.id.yesbutton)).setVisibility(Button.INVISIBLE);
-        ((Button)findViewById(R.id.nobutton)).setVisibility(Button.INVISIBLE);
+        Musubi musubi = Musubi.getInstance(this);
+        DbObj obj = musubi.objForUri(getIntent().getData());
+        DbFeed feed = obj.getContainingFeed();
+        JSONObject json = obj.getJson();
+        int myIndex = (feed.getMembers().get(0).getName()
+                .equals(feed.getLocalUser().getName())) ? 1 : 0;
+        try {
+            ((TextView)findViewById(R.id.verifyText))
+                .setText("Success!" +
+                         "\nPayer: " + feed.getMembers().get(myIndex).getName() +
+                         "\nAmount: " + json.getString("amount") +
+                         "\nTransaction ID: " + json.getString("tid"));
+                ((Button)findViewById(R.id.yesbutton)).setText("OK");
+                ((Button)findViewById(R.id.nobutton)).setVisibility(Button.INVISIBLE);
+                return;
+        } catch (JSONException e1) {
+            finish();
+            return;
+        }
         
         //getBankNames(getIntent().getData());
     }

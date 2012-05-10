@@ -83,7 +83,7 @@ public class MessageReceiver extends BroadcastReceiver {
 
         PendingIntent contentIntent = PendingIntent.getActivity(context, 0, notificationIntent, 0);
         try {
-            if (data.has("payee")) {
+            if (!data.has("done")) {
                 notification.setLatestEventInfo(context, "New bill from " + otherParty, "$" + data.getInt("amount"), contentIntent);
             } else {
                 notification.setLatestEventInfo(context, "New payment from " + otherParty, "Tap to continue.", contentIntent);
