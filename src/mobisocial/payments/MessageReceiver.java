@@ -9,9 +9,12 @@ import android.content.Context;
 import android.content.Intent;
 
 
+import mobisocial.payments.server.BankSession;
+import mobisocial.socialkit.Obj;
 import mobisocial.socialkit.musubi.DbFeed;
 import mobisocial.socialkit.musubi.DbObj;
 import mobisocial.socialkit.musubi.Musubi;
+import mobisocial.socialkit.obj.MemObj;
 import android.app.Activity;
 import android.app.Notification;
 import android.app.NotificationManager;
@@ -39,6 +42,24 @@ public class MessageReceiver extends BroadcastReceiver {
             return;
         }
         JSONObject data = obj.getJson();
+        Log.d(TAG, data.toString());
+        
+        if (!data.has("sent")) {
+            if (data.has("done")) {
+                try {
+                    if (!data.getString("payee").equals(obj.getContainingFeed().getLocalUser().getName())) {
+                        return;
+                    }
+                } catch (JSONException e) {}
+            } else {
+                try {
+                    if (data.has("account") && !data.getString("payee").equals(obj.getContainingFeed().getLocalUser().getName())) {
+                        postAccountInfo(obj, context);
+                    }
+                } catch (JSONException e) {}
+                return;
+            }
+        }
         
         DbFeed feed = obj.getContainingFeed();
         int myIndex = (feed.getMembers().get(0).getName()
@@ -49,7 +70,7 @@ public class MessageReceiver extends BroadcastReceiver {
         NotificationManager nm = (NotificationManager)context.getSystemService(Context.NOTIFICATION_SERVICE);
         Notification notification;
         Intent notificationIntent;
-        if (data.has("payee")) {
+        if (!data.has("done")) {
             notification = new Notification(R.drawable.visa, "New bill", System.currentTimeMillis());
             notificationIntent = new Intent(context, AcceptBillActivity.class);
         } else {
@@ -79,5 +100,30 @@ public class MessageReceiver extends BroadcastReceiver {
         Bundle b = new Bundle();
         b.putInt("notification", 0);
         setResult(Activity.RESULT_OK, null, b);
+    }
+    
+
+    
+    private void postAccountInfo(final DbObj obj, final Context context) {
+        final DbFeed feed = obj.getContainingFeed();
+        new Thread() {
+            @Override
+            public void run() {
+                JSONObject json = obj.getJson();
+                try {
+                    String signed = BankSession.newInstance(
+                            context, "user3@example.com", "password")
+                            .getToken(json);
+                    json.remove("account");
+                    json.put("signed", signed);
+                    json.put("done", true);
+                    json.put(Obj.FIELD_HTML, "<html>Payment is ready</html>");
+                    json.put("source", "payer");
+                    feed.postObj(new MemObj("expayment", json));
+                } catch (JSONException e) {
+                    Log.e(TAG, "JSON error", e);
+                }
+            }
+        }.start();
     }
 }

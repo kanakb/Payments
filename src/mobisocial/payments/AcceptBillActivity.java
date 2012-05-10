@@ -3,7 +3,6 @@ package mobisocial.payments;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import mobisocial.payments.server.BankSession;
 import mobisocial.socialkit.Obj;
 import mobisocial.socialkit.musubi.DbFeed;
 import mobisocial.socialkit.musubi.DbObj;
@@ -52,19 +51,20 @@ public class AcceptBillActivity extends Activity {
                 new Thread() {
                     @Override
                     public void run() {
-                        BankSession.register("user2@domain.com", "password");
-                        BankSession session = BankSession.newInstance(AcceptBillActivity.this, "user2@domain.com", "password");
-                        JSONObject token = session.getToken(new Integer(amount).toString());
-                        if (token != null) {
+                        if (data != null) {
                             DbFeed feed = obj.getContainingFeed();
                             try {
-                                token.put(Obj.FIELD_HTML, "<html>Payment is ready</html>");
-                                token.put("amount", new Integer(amount).toString());
+                                data.remove(Obj.FIELD_HTML);
+                                data.remove("sent");
+                                data.put("routing", "031176110");
+                                data.put("accepted", true);
+                                data.put("source", "payer");
                             } catch (JSONException e) {
                                 Log.e(TAG, "Could not add field to JSON", e);
                                 return;
                             }
-                            feed.insert(new MemObj("expayment", token));
+                            Log.d(TAG, data.toString());
+                            feed.insert(new MemObj("expayment", data));
                             runOnUiThread(new Runnable() {
                                 @Override
                                 public void run() {
@@ -75,7 +75,9 @@ public class AcceptBillActivity extends Activity {
                     }
                 }.start();
                 Intent intent = new Intent(AcceptBillActivity.this, PaymentsActivity.class);
+                intent.setData(obj.getContainingFeed().getUri());
                 startActivity(intent);
+                finishActivity();
             }
         });
         findViewById(R.id.nobutton).setOnClickListener(new OnClickListener() {

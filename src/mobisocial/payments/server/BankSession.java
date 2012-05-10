@@ -201,7 +201,7 @@ public class BankSession {
     }
     
     // Get a token
-    public JSONObject getToken(String amount) {
+    public String getToken(JSONObject details) throws JSONException{
         HttpClient http = new DefaultHttpClient();
         URI uri;
         try {
@@ -214,8 +214,14 @@ public class BankSession {
         HttpPost post = new HttpPost(uri);
         post.setHeader("Set-Cookie", "_id=" + mSessionId);
         List<NameValuePair> postData = new ArrayList<NameValuePair>();
-        postData.add(new BasicNameValuePair("amount", amount));
+        JSONObject transaction = new JSONObject();
+        transaction.put("id", details.getInt("tid"));
+        transaction.put("ach", details.getString("ACH"));
+        postData.add(new BasicNameValuePair("transaction", transaction.toString()));
+        postData.add(new BasicNameValuePair("amount", details.getString("amount")));
         postData.add(new BasicNameValuePair("sid", mSessionId));
+        Log.d(TAG, "Session ID: " + mSessionId);
+        Log.d(TAG, transaction.toString());
         try {
             post.setEntity(new UrlEncodedFormEntity(postData, HTTP.UTF_8));
             HttpResponse response = http.execute(post);
@@ -232,15 +238,12 @@ public class BankSession {
                 return null;
             }
             Log.d(TAG, responseStr);
-            return new JSONObject(responseStr);
+            return responseStr;
         } catch (UnsupportedEncodingException e) {
             Log.e(TAG, "Could not encode request parameters", e);
             return null;
         } catch (IOException e) {
             Log.e(TAG, "Error sending HTTP request", e);
-            return null;
-        } catch (JSONException e) {
-            Log.e(TAG, "Error parsing JSON", e);
             return null;
         }
     }

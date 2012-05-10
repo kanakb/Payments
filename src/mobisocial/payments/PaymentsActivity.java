@@ -1,16 +1,35 @@
 package mobisocial.payments;
 
+import java.io.BufferedInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.security.InvalidKeyException;
+import java.security.KeyFactory;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.PublicKey;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.HashSet;
 
+import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 import mobisocial.socialkit.musubi.DbFeed;
 import mobisocial.socialkit.musubi.DbObj;
 import mobisocial.socialkit.musubi.FeedObserver;
 import mobisocial.socialkit.musubi.Musubi;
+import mobisocial.socialkit.obj.MemObj;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Base64;
 import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -24,6 +43,17 @@ public class PaymentsActivity extends Activity {
     
     private Musubi mMusubi;
     private HashSet<String> mNotifiedSet = new HashSet<String>();
+    
+    private static final String PUBLIC_KEY = 
+            "-----BEGIN PUBLIC KEY-----\n" +
+            "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAwQbMQ6HLpvcS/uOxAzMy\n" +
+            "fKKVmnEsz6lRLEBNvHobFLeemZqhlLHuxYTLEU44bbqtN2ZUqucNGWq7YaQInJgC\n" +
+            "tb3I6qx8PUDcvq8a9BAEtBGjs/PvVVgag06YDHshXWnIOZ18s+8aDVphyMouxtKg\n" +
+            "LnbRJJpcBFuH8h8hf3rYyNt8KWtdm3/0CQ0JPskmAN9Dz12hxT3rrbqoJGlezagl\n" +
+            "c0enFJxbZgccTnVoYqqAZo4Np+c/F9Wn20w5O2bWUGVNGu9WQeuJ0cwAVnaDN6of\n" +
+            "7plQHbVLKNX/QxcAuf2/rsQa15UWENHwmjF2MwZgZLwU9cwcsATKHgoqKaoUYUng\n" +
+            "LwIDAQAB\n" +
+            "-----END PUBLIC KEY-----\n";
     
     private OnClickListener mPayButtonListener = new OnClickListener() {
         @Override
@@ -47,21 +77,85 @@ public class PaymentsActivity extends Activity {
         }
     };
     
-    private FeedObserver mPayeeFeedObserver = new FeedObserver() {
+    private FeedObserver mFeedObserver = new FeedObserver() {
         @Override
         public void onUpdate(DbObj obj) {
             synchronized(mNotifiedSet) {
-                Log.d(TAG, obj.getJson().toString());
                 if (mNotifiedSet.contains(obj.getUri().toString())) {
                     return;
                 }
                 mNotifiedSet.add(obj.getUri().toString());
-                Intent create = new Intent(PaymentsActivity.this, VerifyPaymentActivity.class);
-                create.setData(obj.getUri());
-                startActivity(create);
+                Log.d(TAG, "Notified: " + obj.getJson().toString());
+                JSONObject json = obj.getJson();
+                try {
+                    if (json.getString("source").equals("payee")
+                            && json.getString("payee")
+                            .equals(obj.getContainingFeed().getLocalUser().getName())) {
+                        return;
+                    } else if (json.getString("source").equals("payer")
+                            && !json.getString("payee")
+                            .equals(obj.getContainingFeed().getLocalUser().getName())) {
+                        return;
+                    }
+                } catch (JSONException e) {
+                    return;
+                }
+                if (json.has("accepted")) {
+                    json.remove("accepted");
+                    postTransactionDetails(obj);
+                } else
+                    try {
+                        if (json.has("done") && json.getString("payee")
+                                .equals(obj.getContainingFeed().getLocalUser().getName())) {
+                            Intent intent = new Intent(PaymentsActivity.this, VerifyPaymentActivity.class);
+                            intent.setData(obj.getUri());
+                            startActivity(intent);
+                        }
+                    } catch (JSONException e) {
+                }
             }
         }
     };
+    
+    private void postTransactionDetails(DbObj obj) {
+        DbFeed feed = obj.getContainingFeed();
+        JSONObject json = obj.getJson();
+        String rsaKey;
+        try {
+            rsaKey = getRsaKey(json.getString("routing"));
+            json.put("ACH", getEncryptedACH(rsaKey));
+            json.put("account", true);
+            json.put("source", "payee");
+            feed.postObj(new MemObj("expayment", json));
+        } catch (Exception e) {
+            Log.e(TAG, "Malformed JSON", e);
+            return;
+        }
+    }
+    
+    private String getEncryptedACH(String rsaKey)
+            throws NoSuchPaddingException, InvalidKeyException, NoSuchAlgorithmException,
+            NoSuchProviderException, InvalidKeySpecException, IllegalBlockSizeException,
+            BadPaddingException, JSONException, IOException {
+        JSONObject details = new JSONObject();
+        details.put("routing", "121000358");
+        details.put("account", "12345");
+        InputStream instream = new BufferedInputStream(getAssets().open("public_key.der"));
+        byte[] encodedKey = new byte[instream.available()];
+        instream.read(encodedKey);
+        X509EncodedKeySpec publicKeySpec = new X509EncodedKeySpec(encodedKey);
+        KeyFactory kf = KeyFactory.getInstance("RSA");
+        PublicKey pkPublic = kf.generatePublic(publicKeySpec);
+        Cipher pkCipher = Cipher.getInstance("RSA");
+        pkCipher.init(Cipher.ENCRYPT_MODE, pkPublic);
+        byte[] encryptedInBytes = pkCipher.doFinal(details.toString().getBytes());
+        return Base64.encodeToString(encryptedInBytes, Base64.DEFAULT);
+    }
+    
+    
+    private String getRsaKey(String routing) {
+        return PUBLIC_KEY;
+    }
     
     private boolean askForMusubi() {
         if (!Musubi.isMusubiInstalled(this)) {
@@ -102,7 +196,7 @@ public class PaymentsActivity extends Activity {
             }
             
             DbFeed feed = mMusubi.getFeed(data.getData());
-            feed.registerStateObserver(mPayeeFeedObserver);
+            feed.registerStateObserver(mFeedObserver);
         }
     }
     
@@ -113,7 +207,5 @@ public class PaymentsActivity extends Activity {
         mMusubi = Musubi.forIntent(this, getIntent());
         findViewById(R.id.paybutton).setOnClickListener(mPayButtonListener);
         findViewById(R.id.billbutton).setOnClickListener(mBillButtonListener);
-        //Log.d(TAG, TokenVerifier.nameForRoutingNumber("031176110"));
-        //Log.d(TAG, TokenVerifier.getCertificateOwner("https://home.ingdirect.com"));
     }
 }

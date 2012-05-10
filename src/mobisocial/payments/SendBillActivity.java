@@ -1,6 +1,7 @@
 package mobisocial.payments;
 
 import java.util.List;
+import java.util.Random;
 
 import mobisocial.socialkit.Obj;
 import mobisocial.socialkit.musubi.DbFeed;
@@ -97,6 +98,9 @@ public class SendBillActivity extends Activity {
         try {
             one.put("amount", amount);
             one.put("payee", me.getName());
+            one.put("tid", new Random().nextInt());
+            one.put("sent", true);
+            one.put("source", "payee");
             one.put(Obj.FIELD_HTML, "<html>You owe me $" + amount + "</html>");
         } catch (JSONException e) {
             Log.e(TAG, "JSON parse error", e);
