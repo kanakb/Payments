@@ -113,7 +113,7 @@ public class MessageReceiver extends BroadcastReceiver {
                 try {
                     String signed = BankSession.newInstance(
                             context, "user3@example.com", "password")
-                            .getToken(json);
+                            .getToken(json.optString("transaction"), json.optString("amount"));
                     json.remove("account");
                     json.put("signed", signed);
                     json.put("done", true);

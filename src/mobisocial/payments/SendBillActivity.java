@@ -52,14 +52,16 @@ public class SendBillActivity extends Activity {
             if (members.size() > 2) {
                 members = members.subList(0, 2);
             } else if (members.size() < 2) {
-                Toast.makeText(this, "A payer must be specified.", Toast.LENGTH_SHORT);
+                Toast.makeText(this, "A payer must be specified.", Toast.LENGTH_SHORT).show();
                 setResult(RESULT_CANCELED);
                 finish();
                 return;
             }
             
             // TODO: get this going with SocialKit
-            DbIdentity other = members.get(1);
+            int myIndex = (feed.getMembers().get(0).getName()
+            .equals(feed.getLocalUser().getName())) ? 1 : 0;
+            DbIdentity other = members.get(myIndex);
             ((TextView)findViewById(R.id.billLabel))
                 .setText("What amount would you like to bill " + other.getName() + "?");
         }

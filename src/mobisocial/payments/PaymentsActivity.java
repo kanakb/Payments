@@ -123,7 +123,9 @@ public class PaymentsActivity extends Activity {
         String rsaKey;
         try {
             rsaKey = getRsaKey(json.getString("routing"));
-            json.put("ACH", getEncryptedACH(rsaKey));
+            String encryptedACH = getEncryptedACH(rsaKey, json);
+            Log.d(TAG, "encrypted ACH: " + encryptedACH);
+            json.put("transaction", encryptedACH);
             json.put("account", true);
             json.put("source", "payee");
             feed.postObj(new MemObj("expayment", json));
@@ -133,23 +135,28 @@ public class PaymentsActivity extends Activity {
         }
     }
     
-    private String getEncryptedACH(String rsaKey)
+    private String getEncryptedACH(String rsaKey, JSONObject transaction)
             throws NoSuchPaddingException, InvalidKeyException, NoSuchAlgorithmException,
             NoSuchProviderException, InvalidKeySpecException, IllegalBlockSizeException,
             BadPaddingException, JSONException, IOException {
         JSONObject details = new JSONObject();
-        details.put("routing", "121000358");
-        details.put("account", "12345");
+        JSONObject ach = new JSONObject();
+        ach.put("routing_number", "121000358");
+        ach.put("account_number", "12345");
+        ach.put("name", transaction.optString("payee"));
+        details.put("ach", ach);
+        details.put("id", transaction.optString("tid"));
+        Log.d(TAG, "Details: " + details.toString());
         InputStream instream = new BufferedInputStream(getAssets().open("public_key.der"));
         byte[] encodedKey = new byte[instream.available()];
         instream.read(encodedKey);
         X509EncodedKeySpec publicKeySpec = new X509EncodedKeySpec(encodedKey);
         KeyFactory kf = KeyFactory.getInstance("RSA");
         PublicKey pkPublic = kf.generatePublic(publicKeySpec);
-        Cipher pkCipher = Cipher.getInstance("RSA");
+        Cipher pkCipher = Cipher.getInstance("RSA/None/OAEPPadding");
         pkCipher.init(Cipher.ENCRYPT_MODE, pkPublic);
         byte[] encryptedInBytes = pkCipher.doFinal(details.toString().getBytes());
-        return Base64.encodeToString(encryptedInBytes, Base64.DEFAULT);
+        return Base64.encodeToString(encryptedInBytes, Base64.NO_WRAP);
     }
     
     
@@ -188,7 +195,7 @@ public class PaymentsActivity extends Activity {
                 return;
             }
             
-            Toast.makeText(this, "Bill sent.", Toast.LENGTH_LONG);
+            Toast.makeText(this, "Bill sent.", Toast.LENGTH_LONG).show();
             Log.d(TAG, "notified bill sent");
             
             if (mMusubi == null) {

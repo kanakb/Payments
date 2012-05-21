@@ -23,7 +23,6 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.protocol.HTTP;
 import org.json.JSONException;
-import org.json.JSONObject;
 
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -201,7 +200,7 @@ public class BankSession {
     }
     
     // Get a token
-    public String getToken(JSONObject details) throws JSONException{
+    public String getToken(String transaction, String amount) throws JSONException{
         HttpClient http = new DefaultHttpClient();
         URI uri;
         try {
@@ -214,14 +213,11 @@ public class BankSession {
         HttpPost post = new HttpPost(uri);
         post.setHeader("Set-Cookie", "_id=" + mSessionId);
         List<NameValuePair> postData = new ArrayList<NameValuePair>();
-        JSONObject transaction = new JSONObject();
-        transaction.put("id", details.getInt("tid"));
-        transaction.put("ach", details.getString("ACH"));
-        postData.add(new BasicNameValuePair("transaction", transaction.toString()));
-        postData.add(new BasicNameValuePair("amount", details.getString("amount")));
+        postData.add(new BasicNameValuePair("transaction", transaction));
+        postData.add(new BasicNameValuePair("amount", amount));
         postData.add(new BasicNameValuePair("sid", mSessionId));
         Log.d(TAG, "Session ID: " + mSessionId);
-        Log.d(TAG, transaction.toString());
+        Log.d(TAG, "Transaction: " + transaction);
         try {
             post.setEntity(new UrlEncodedFormEntity(postData, HTTP.UTF_8));
             HttpResponse response = http.execute(post);
