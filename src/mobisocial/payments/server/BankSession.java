@@ -23,6 +23,7 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.protocol.HTTP;
 import org.json.JSONException;
+import org.json.JSONObject;
 
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -200,7 +201,7 @@ public class BankSession {
     }
     
     // Get a token
-    public String getToken(String transaction, String amount) throws JSONException{
+    public JSONObject getToken(String transaction, String amount) throws JSONException{
         HttpClient http = new DefaultHttpClient();
         URI uri;
         try {
@@ -234,7 +235,13 @@ public class BankSession {
                 return null;
             }
             Log.d(TAG, responseStr);
-            return responseStr;
+            try {
+                JSONObject result = new JSONObject(responseStr);
+                return result;
+            } catch (JSONException e) {
+                Log.e(TAG, "could not parse JSON response", e);
+                return null;
+            }
         } catch (UnsupportedEncodingException e) {
             Log.e(TAG, "Could not encode request parameters", e);
             return null;

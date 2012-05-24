@@ -76,6 +76,7 @@ public class AcceptBillActivity extends Activity {
                 }.start();
                 Intent intent = new Intent(AcceptBillActivity.this, PaymentsActivity.class);
                 intent.setData(obj.getContainingFeed().getUri());
+                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
                 startActivity(intent);
                 finishActivity();
             }
@@ -84,6 +85,7 @@ public class AcceptBillActivity extends Activity {
             @Override
             public void onClick(View v) {
                 Intent intent = new Intent(AcceptBillActivity.this, PaymentsActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
                 startActivity(intent);
                 finishActivity();
             }

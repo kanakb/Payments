@@ -1,5 +1,17 @@
 package mobisocial.payments;
 
+import java.io.BufferedInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.security.InvalidKeyException;
+import java.security.KeyFactory;
+import java.security.NoSuchAlgorithmException;
+import java.security.PublicKey;
+import java.security.Signature;
+import java.security.SignatureException;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.X509EncodedKeySpec;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -11,6 +23,8 @@ import android.app.NotificationManager;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Base64;
+import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
@@ -38,6 +52,7 @@ public class VerifyPaymentActivity extends Activity {
             @Override
             public void onClick(View v) {
                 Intent intent = new Intent(VerifyPaymentActivity.this, PaymentsActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
                 startActivity(intent);
                 finishActivity();
             }
@@ -46,6 +61,7 @@ public class VerifyPaymentActivity extends Activity {
             @Override
             public void onClick(View v) {
                 Intent intent = new Intent(VerifyPaymentActivity.this, PaymentsActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
                 startActivity(intent);
                 finishActivity();
             }
@@ -58,20 +74,57 @@ public class VerifyPaymentActivity extends Activity {
         int myIndex = (feed.getMembers().get(0).getName()
                 .equals(feed.getLocalUser().getName())) ? 1 : 0;
         try {
-            ((TextView)findViewById(R.id.verifyText))
-                .setText("Success!" +
-                         "\nPayer: " + feed.getMembers().get(myIndex).getName() +
-                         "\nAmount: $" + json.getString("amount") +
-                         "\nTransaction ID: " + json.getString("tid"));
-                ((Button)findViewById(R.id.yesbutton)).setText("OK");
-                ((Button)findViewById(R.id.nobutton)).setVisibility(Button.INVISIBLE);
-                return;
+            if (!parseAndVerify(json)) {
+                ((TextView)findViewById(R.id.verifyText))
+                    .setText("Payment could not be verified!" +
+                            "\nPayer: " + feed.getMembers().get(myIndex).getName() +
+                            "\nAmount: $" + json.getString("amount") +
+                            "\nTransaction ID: " + json.getString("tid"));
+            } else {
+                ((TextView)findViewById(R.id.verifyText))
+                    .setText("Success!" +
+                             "\nPayer: " + feed.getMembers().get(myIndex).getName() +
+                             "\nAmount: $" + json.getString("amount") +
+                             "\nTransaction ID: " + json.getString("tid"));
+            }
+            ((Button)findViewById(R.id.yesbutton)).setText("OK");
+            ((Button)findViewById(R.id.nobutton)).setVisibility(Button.INVISIBLE);
+            return;
         } catch (JSONException e1) {
             finish();
             return;
         }
         
         //getBankNames(getIntent().getData());
+    }
+    
+    private boolean parseAndVerify(JSONObject toVerify) {
+        try {
+            JSONObject token = toVerify.getJSONObject("token");
+            JSONObject sig = toVerify.getJSONObject("sig");
+            return verify(token.toString(), sig.toString());
+        } catch (JSONException e) {
+            Log.w(TAG, "JSON parse error", e);
+            return false;
+        } catch (Exception e) {
+            Log.e(TAG, "could not run signature verification");
+            return false;
+        }
+    }
+    
+    private boolean verify(String reported, String signed)
+            throws IOException, NoSuchAlgorithmException, InvalidKeySpecException,
+            InvalidKeyException, SignatureException {
+        InputStream instream = new BufferedInputStream(getAssets().open("public_key.der"));
+        byte[] encodedKey = new byte[instream.available()];
+        instream.read(encodedKey);
+        X509EncodedKeySpec publicKeySpec = new X509EncodedKeySpec(encodedKey);
+        KeyFactory kf = KeyFactory.getInstance("RSA");
+        PublicKey pkPublic = kf.generatePublic(publicKeySpec);
+        Signature sig = Signature.getInstance("SHA256withRSA");
+        sig.initVerify(pkPublic);
+        sig.update(reported.getBytes());
+        return sig.verify(Base64.decode(signed, Base64.DEFAULT));
     }
     
     private void finishActivity() {
