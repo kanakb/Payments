@@ -74,7 +74,7 @@ public class VerifyPaymentActivity extends Activity {
         int myIndex = (feed.getMembers().get(0).getName()
                 .equals(feed.getLocalUser().getName())) ? 1 : 0;
         try {
-            if (!parseAndVerify(json)) {
+            if (!parseAndVerify(json.optJSONObject("signed"))) {
                 ((TextView)findViewById(R.id.verifyText))
                     .setText("Payment could not be verified!" +
                             "\nPayer: " + feed.getMembers().get(myIndex).getName() +
@@ -101,8 +101,8 @@ public class VerifyPaymentActivity extends Activity {
     private boolean parseAndVerify(JSONObject toVerify) {
         try {
             JSONObject token = toVerify.getJSONObject("token");
-            JSONObject sig = toVerify.getJSONObject("sig");
-            return verify(token.toString(), sig.toString());
+            String sig = toVerify.getString("sig");
+            return verify(token.toString(), sig);
         } catch (JSONException e) {
             Log.w(TAG, "JSON parse error", e);
             return false;
@@ -115,6 +115,7 @@ public class VerifyPaymentActivity extends Activity {
     private boolean verify(String reported, String signed)
             throws IOException, NoSuchAlgorithmException, InvalidKeySpecException,
             InvalidKeyException, SignatureException {
+        Log.d(TAG, "Reported: " + reported);
         InputStream instream = new BufferedInputStream(getAssets().open("public_key.der"));
         byte[] encodedKey = new byte[instream.available()];
         instream.read(encodedKey);
