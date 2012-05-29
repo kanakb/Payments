@@ -99,15 +99,20 @@ public class VerifyPaymentActivity extends Activity {
     }
     
     private boolean parseAndVerify(JSONObject toVerify) {
+        if (toVerify == null) {
+            return false;
+        }
         try {
-            JSONObject token = toVerify.getJSONObject("token");
+            String token = toVerify.getString("token");
             String sig = toVerify.getString("sig");
-            return verify(token.toString(), sig);
+            JSONObject tokenAsJson = new JSONObject(new String(Base64.decode(token, Base64.DEFAULT)));
+            Log.d(TAG, "tokenAsJson: " + tokenAsJson.toString());
+            return verify(token, sig);
         } catch (JSONException e) {
             Log.w(TAG, "JSON parse error", e);
             return false;
         } catch (Exception e) {
-            Log.e(TAG, "could not run signature verification");
+            Log.e(TAG, "could not run signature verification", e);
             return false;
         }
     }
@@ -116,6 +121,7 @@ public class VerifyPaymentActivity extends Activity {
             throws IOException, NoSuchAlgorithmException, InvalidKeySpecException,
             InvalidKeyException, SignatureException {
         Log.d(TAG, "Reported: " + reported);
+        Log.d(TAG, "Signed: " + signed);
         InputStream instream = new BufferedInputStream(getAssets().open("public_key.der"));
         byte[] encodedKey = new byte[instream.available()];
         instream.read(encodedKey);
@@ -124,7 +130,7 @@ public class VerifyPaymentActivity extends Activity {
         PublicKey pkPublic = kf.generatePublic(publicKeySpec);
         Signature sig = Signature.getInstance("SHA256withRSA");
         sig.initVerify(pkPublic);
-        sig.update(reported.getBytes());
+        sig.update(Base64.decode(reported, Base64.DEFAULT));
         return sig.verify(Base64.decode(signed, Base64.DEFAULT));
     }
     

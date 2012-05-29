@@ -100,7 +100,9 @@ public class SendBillActivity extends Activity {
         try {
             one.put("amount", amount);
             one.put("payee", me.getName());
-            one.put("tid", new Random().nextInt());
+            int rand = new Random().nextInt();
+            rand = (rand >= 0) ? rand : -rand;
+            one.put("tid", rand);
             one.put("sent", true);
             one.put("source", "payee");
             one.put(Obj.FIELD_HTML, "<html>You owe me $" + amount + "</html>");
