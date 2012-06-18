@@ -213,6 +213,7 @@ public class PaymentsActivity extends Activity {
         setContentView(R.layout.main);
         mMusubi = Musubi.forIntent(this, getIntent());
         findViewById(R.id.paybutton).setOnClickListener(mPayButtonListener);
+        findViewById(R.id.paybutton).setEnabled(false);
         findViewById(R.id.billbutton).setOnClickListener(mBillButtonListener);
     }
 }

@@ -21,10 +21,18 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.Log;
 
 public class MessageReceiver extends BroadcastReceiver {
 	public static final String TAG = "MessageReceiver";
+	
+	// Delays are [5 sec, 5 min]
+	private static final long INITIAL_DELAY = 1000L * 5L;
+	private static final long MAX_DELAY = 1000L * 60L * 5L;
+	
+	private Handler mHandler;
+	private long mDelay;
 	
     @Override
     public void onReceive(Context context, Intent intent) {
@@ -43,6 +51,9 @@ public class MessageReceiver extends BroadcastReceiver {
         }
         JSONObject data = obj.getJson();
         Log.d(TAG, data.toString());
+        
+        mHandler = new Handler();
+        mDelay = INITIAL_DELAY;
         
         if (!data.has("sent")) {
             if (data.has("done")) {
@@ -114,6 +125,15 @@ public class MessageReceiver extends BroadcastReceiver {
                     JSONObject signed = BankSession.newInstance(
                             context, "test@test.com", "123456")
                             .getToken(json.optString("transaction"), json.optString("amount"));
+                    // If this fails, try again with exponential backoff
+                    if (signed == null) {
+                        Log.d(TAG, "Request failed. Trying again in " + mDelay / 1000L + " sec");
+                        long oldDelay = mDelay;
+                        mDelay = (mDelay * 2 < MAX_DELAY) ? mDelay * 2 : MAX_DELAY;
+                        mHandler.postDelayed(this, oldDelay);
+                        return;
+                    }
+                    
                     json.remove("account");
                     json.put("signed", signed);
                     json.put("done", true);

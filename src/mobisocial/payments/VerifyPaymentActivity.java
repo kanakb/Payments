@@ -105,14 +105,25 @@ public class VerifyPaymentActivity extends Activity {
         try {
             String token = toVerify.getString("token");
             String sig = toVerify.getString("sig");
-            JSONObject tokenAsJson = new JSONObject(new String(Base64.decode(token, Base64.DEFAULT)));
-            Log.d(TAG, "tokenAsJson: " + tokenAsJson.toString());
-            return verify(token, sig);
+            return verify(token, sig) && verifyDetails(token);
         } catch (JSONException e) {
             Log.w(TAG, "JSON parse error", e);
             return false;
         } catch (Exception e) {
             Log.e(TAG, "could not run signature verification", e);
+            return false;
+        }
+    }
+    
+    private boolean verifyDetails(String tokenAsString) {
+        try {
+            JSONObject token = new JSONObject(new String(Base64.decode(tokenAsString, Base64.DEFAULT)));
+            Log.d(TAG, "tokenAsJson: " + token.toString());
+            Log.d(TAG, "id: " + token.getString("id"));
+            Log.d(TAG, "details: " + token.getString("transaction"));
+            return true;
+        } catch (JSONException e) {
+            Log.e(TAG, "JSON error with token", e);
             return false;
         }
     }
